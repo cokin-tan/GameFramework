@@ -2,11 +2,7 @@
 
 public static class Logger 
 {
-    private static bool IsEnable
-    {
-        get;
-        set;
-    }
+    private static bool IsEnable = true;
 
     public static void SetEnable(bool isEnable)
     {

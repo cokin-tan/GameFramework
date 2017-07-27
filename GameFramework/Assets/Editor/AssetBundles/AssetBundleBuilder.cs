@@ -40,20 +40,44 @@ public static class AssetBundleBuilder
         }
     }
 
-    public static BuildItemConfig[] buildItemConfig = new BuildItemConfig[] 
+    private static BuildItemConfig[] buildItemConfig = new BuildItemConfig[] 
     {
         new BuildItemConfig(){ name = AssetExt.FIELD, isFolder = true, filter = "*.unity", recursion = false },
         new BuildItemConfig(){ name = AssetExt.TEXTURES, isFolder = true, filter = "*.png", recursion = false },
         new BuildItemConfig(){ name = AssetExt.UI, isFolder = true, filter = "*.prefab", recursion = false }
     };
 
-    public static void RemoveAllAssetBundleNames()
+    private static void RemoveAllAssetBundleNames()
     {
         string[] bundleNames = AssetDatabase.GetAllAssetBundleNames();
         foreach (string name in bundleNames)
         {
             AssetDatabase.RemoveAssetBundleName(name, true);
         }
+    }
+
+    private static string SerializeJsonFile(ResourceConfig.ResourceData json, string path)
+    {
+        string jsonText = string.Empty;
+
+        using (StreamWriter sw = new StreamWriter(Application.dataPath + path))
+        {
+            jsonText = Pathfinding.Serialization.JsonFx.JsonWriter.Serialize(json);
+            sw.Write(jsonText);
+        }
+        AssetDatabase.ImportAsset("Assets" + path, ImportAssetOptions.ForceUpdate);
+
+        return jsonText;
+    }
+
+    private static void CopyFileEx(string from, string to)
+    {
+        string directory = Path.GetDirectoryName(to);
+        if (!Directory.Exists(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+        File.Copy(from, to, true);
     }
 
     public static void GenerateBundles(BuildItemConfig[] buildItemConfig, string rootPath)
@@ -124,10 +148,12 @@ public static class AssetBundleBuilder
         try
         {
             byte[] bytes = File.ReadAllBytes(Path.Combine(BuildOutputPath, CurrentBuildTarget.ToString()));
+            manifestBundle = AssetBundle.LoadFromMemory(bytes);
+            manifest = manifestBundle.LoadAsset<AssetBundleManifest>("AssetBundleManifest");
         }
         catch(System.Exception e)
         {
-
+            Debug.LogError(e.ToString());
         }
         finally
         {
@@ -137,6 +163,66 @@ public static class AssetBundleBuilder
                 manifestBundle = null;
             }
         }
+        Debug.Assert(null != manifest);
+
+        string[] assets = manifest.GetAllAssetBundles();
+        EditorUtility.DisplayProgressBar("Generate resource", "Create verfile...", 1);
+
+        ResourceConfig resource = new ResourceConfig();
+        foreach (var asset in assets)
+        {
+            ConfResourceItem resItem = new ConfResourceItem();
+            string fullPath = Path.Combine(BuildOutputPath, asset);
+            FileInfo fileInfo = new FileInfo(fullPath);
+            int fileSize = 0;
+
+            if (fileInfo.Exists)
+            {
+                fileSize = (int)fileInfo.Length / 1024;
+            }
+            else
+            {
+                Debug.LogError("the file is not exists file = " + asset);
+            }
+
+            resItem.file = asset;
+            resItem.size = fileSize;
+            resItem.md5 = Utils.FileToMd5(fullPath);
+            resItem.assetType = AssetBundleExportType.Alone;
+
+            if (asset.EndsWith(".field"))
+            {
+                string[] dependencies = manifest.GetAllDependencies(asset);
+                foreach (var depend in dependencies)
+                {
+                    resItem.dependencies.Add(depend);
+                }
+            }
+
+            resource.resource.patchLst.Add(resItem);
+        }
+
+        #region generate verfile
+        SerializeJsonFile(resource.resource, "/data/conf/verfile.json");
+        #endregion
+
+        #region generate update file list
+        #endregion
+
+        string tempDirectory = Path.Combine(Application.dataPath, "../" + FileUtil.GetUniqueTempPathInProject());
+        if (!Directory.Exists(tempDirectory))
+        {
+            Directory.CreateDirectory(tempDirectory);
+        }
+        AssetBundleBuild[] buildMap = new AssetBundleBuild[] 
+        {
+            new AssetBundleBuild(){ assetBundleName = "data/conf/verfile.conf", assetNames = new string[]{ "Assets/data/conf/verfile.json" } }
+        };
+        BuildPipeline.BuildAssetBundles(tempDirectory, buildMap, BuildAssetBundleOptions.ChunkBasedCompression, CurrentBuildTarget);
+
+        CopyFileEx(Path.Combine(tempDirectory, "data/conf/verfile.conf"), Path.Combine(BuildOutputPath, "data/conf/verfile.conf"));
+
+        EditorUtility.ClearProgressBar();
     }
 
     public static void BuildAsetsBundle(BuildItemConfig[] buildItemConfig, string rootPath)
