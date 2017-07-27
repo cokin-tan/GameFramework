@@ -42,9 +42,10 @@ public static class AssetBundleBuilder
 
     private static BuildItemConfig[] buildItemConfig = new BuildItemConfig[] 
     {
-        new BuildItemConfig(){ name = AssetExt.FIELD, isFolder = true, filter = "*.unity", recursion = false },
+        new BuildItemConfig(){ name = AssetExt.FIELD, isFolder = false, filter = "*.unity", recursion = true },
         new BuildItemConfig(){ name = AssetExt.TEXTURES, isFolder = true, filter = "*.png", recursion = false },
-        new BuildItemConfig(){ name = AssetExt.UI, isFolder = true, filter = "*.prefab", recursion = false }
+        new BuildItemConfig(){ name = AssetExt.UI, isFolder = false, filter = "*.prefab", recursion = false },
+        new BuildItemConfig(){ name = AssetExt.CONF, isFolder = false, filter = "*.*", recursion = false }
     };
 
     private static void RemoveAllAssetBundleNames()
@@ -78,6 +79,52 @@ public static class AssetBundleBuilder
             Directory.CreateDirectory(directory);
         }
         File.Copy(from, to, true);
+    }
+
+    private static AssetBundleManifest LoadManifest()
+    {
+        AssetBundle manifestBundle = null;
+        AssetBundleManifest manifest = null;
+        try
+        {
+            byte[] bytes = File.ReadAllBytes(Path.Combine(BuildOutputPath, CurrentBuildTarget.ToString()));
+            manifestBundle = AssetBundle.LoadFromMemory(bytes);
+            manifest = manifestBundle.LoadAsset<AssetBundleManifest>("AssetBundleManifest");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError(e.ToString());
+        }
+        finally
+        {
+            if (null != manifestBundle)
+            {
+                manifestBundle.Unload(false);
+                manifestBundle = null;
+            }
+        }
+        Debug.Assert(null != manifest);
+
+        return manifest;
+    }
+
+    private static void CopyAsset(string fromDirectory, string toDirectory)
+    {
+        EditorUtility.DisplayProgressBar("Copy Resources", "Copy files...", 0);
+        if (Directory.Exists(toDirectory))
+        {
+            Directory.Delete(toDirectory, true);
+        }
+
+        AssetBundleManifest manifest = LoadManifest();
+        string[] assets = manifest.GetAllAssetBundles();
+        for (int index = 0; index < assets.Length; ++index)
+        {
+            string asset = assets[index];
+            CopyFileEx(Path.Combine(fromDirectory, asset), Path.Combine(toDirectory, asset));
+            EditorUtility.DisplayProgressBar("Copy Resources", asset, (float)index / assets.Length);
+        }
+        EditorUtility.ClearProgressBar();
     }
 
     public static void GenerateBundles(BuildItemConfig[] buildItemConfig, string rootPath)
@@ -143,27 +190,7 @@ public static class AssetBundleBuilder
         resourcesLst.Sort((lhs, rhs) => { return lhs.assetBundleName.CompareTo(rhs.assetBundleName); });
         BuildPipeline.BuildAssetBundles(BuildOutputPath, resourcesLst.ToArray(), BuildAssetBundleOptions.ChunkBasedCompression, CurrentBuildTarget);
 
-        AssetBundle manifestBundle = null;
-        AssetBundleManifest manifest = null;
-        try
-        {
-            byte[] bytes = File.ReadAllBytes(Path.Combine(BuildOutputPath, CurrentBuildTarget.ToString()));
-            manifestBundle = AssetBundle.LoadFromMemory(bytes);
-            manifest = manifestBundle.LoadAsset<AssetBundleManifest>("AssetBundleManifest");
-        }
-        catch(System.Exception e)
-        {
-            Debug.LogError(e.ToString());
-        }
-        finally
-        {
-            if (null != manifestBundle)
-            {
-                manifestBundle.Unload(false);
-                manifestBundle = null;
-            }
-        }
-        Debug.Assert(null != manifest);
+        AssetBundleManifest manifest = LoadManifest();
 
         string[] assets = manifest.GetAllAssetBundles();
         EditorUtility.DisplayProgressBar("Generate resource", "Create verfile...", 1);
@@ -229,6 +256,11 @@ public static class AssetBundleBuilder
     {
         RemoveAllAssetBundleNames();
         GenerateBundles(buildItemConfig, rootPath);
+
+        {
+            CopyAsset(BuildOutputPath, Application.streamingAssetsPath);
+            AssetDatabase.ImportAsset("Assets/StreamingAssets/data", ImportAssetOptions.ForceUpdate);
+        }
     }
 
     public static bool BuildAssetsBundle()
