@@ -52,4 +52,11 @@ public class ResourceConfig : IBaseConfig
             resourceDic.Add(item.file, item);
         }
     }
+
+    public ConfResourceItem GetResourceItem(string fileName)
+    {
+        ConfResourceItem resItem = null;
+        resourceDic.TryGetValue(fileName, out resItem);
+        return resItem;
+    }
 }

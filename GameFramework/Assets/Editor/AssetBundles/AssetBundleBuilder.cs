@@ -43,7 +43,7 @@ public static class AssetBundleBuilder
     private static BuildItemConfig[] buildItemConfig = new BuildItemConfig[] 
     {
         new BuildItemConfig(){ name = AssetExt.FIELD, isFolder = false, filter = "*.unity", recursion = true },
-        new BuildItemConfig(){ name = AssetExt.TEXTURES, isFolder = true, filter = "*.png", recursion = false },
+        new BuildItemConfig(){ name = AssetExt.TEXTURES, isFolder = true, filter = "*.*", recursion = true },
         new BuildItemConfig(){ name = AssetExt.UI, isFolder = false, filter = "*.prefab", recursion = false },
         new BuildItemConfig(){ name = AssetExt.CONF, isFolder = false, filter = "*.*", recursion = false }
     };
@@ -217,7 +217,7 @@ public static class AssetBundleBuilder
             resItem.md5 = Utils.FileToMd5(fullPath);
             resItem.assetType = AssetBundleExportType.Alone;
 
-            if (asset.EndsWith(".field"))
+            if (!asset.EndsWith(".field"))
             {
                 string[] dependencies = manifest.GetAllDependencies(asset);
                 foreach (var depend in dependencies)

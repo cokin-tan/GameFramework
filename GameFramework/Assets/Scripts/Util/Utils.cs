@@ -29,4 +29,58 @@ public static class Utils
             return string.Empty;
         }
     }
+
+    public static T FindChild<T>(Transform tran, string name) where T : Component
+    {
+        if (null != tran)
+        {
+            Transform child = tran.Find(name);
+            if (null != child)
+            {
+                return child.gameObject.GetComponent<T>();
+            }
+            else
+            {
+                Logger.LogError("find child failed!!! name = " + name);
+            }
+        }
+        else
+        {
+            Logger.LogError("the parent transform is null");
+        }
+
+        return null;
+    }
+
+    public static T FindChild<T>(GameObject obj, string name) where T : Component
+    {
+        if (null != obj)
+        {
+            return FindChild<T>(obj.transform, name);
+        }
+        else
+        {
+            Logger.LogError("the parent object is null");
+            return null;
+        }
+    }
+
+
+    public static Transform FindChild(Transform tran, string name)
+    {
+        return FindChild<Transform>(tran, name);
+    }
+
+    public static Transform FindChild(GameObject obj, string name)
+    {
+        return FindChild<Transform>(obj, name);
+    }
+
+    public static void SetActive<T>(T obj, bool isActive) where T : Component
+    {
+        if (null != obj)
+        {
+            obj.gameObject.SetActive(isActive);
+        }
+    }
 }
