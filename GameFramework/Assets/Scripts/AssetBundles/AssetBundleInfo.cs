@@ -71,13 +71,11 @@ namespace FrameWork.Assets
 
         public void Retain()
         {
-            Logger.LogError("bundle retain");
             ++this.RetainCount;
         }
 
         public void Release()
         {
-            Logger.LogError("bundle release");
             --this.RetainCount;
         }
 

@@ -159,7 +159,6 @@ namespace FrameWork.Assets
 #if UNITY_EDITOR
                 if (hasUnusedBundle)
                 {
-                    Logger.LogWarning("unload unused asset bundle");
                     Resources.UnloadUnusedAssets();
                 }
 #endif
@@ -199,8 +198,6 @@ namespace FrameWork.Assets
 
         private void OnLoadComplete(AssetBundleLoader abLoader)
         {
-            Debug.LogError(abLoader.bundleName);
-
             loadedAssetBundles[abLoader.bundleName] = abLoader.bundleInfo;
 
             ++remainLoadNum;

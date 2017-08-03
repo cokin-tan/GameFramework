@@ -16,7 +16,7 @@ public class Launch : MonoBehaviour
 
         UIManager.Instance.ChangeRootWindow(GameResourceDefine.UIROOT_LOGIN);
 
-        StartCoroutine(Test());
+        //StartCoroutine(Test());
     }
 
     IEnumerator Test()
