@@ -9,7 +9,7 @@ public static class Logger
         IsEnable = isEnable;
     }
 
-    public static void Log(string message, GameObject context = null)
+    public static void Log(object message, GameObject context = null)
     {
         if (IsEnable)
         {
@@ -33,7 +33,7 @@ public static class Logger
         }
     }
 
-    public static void LogWarning(string message, GameObject context = null)
+    public static void LogWarning(object message, GameObject context = null)
     {
         if (IsEnable)
         {
@@ -57,7 +57,7 @@ public static class Logger
         }
     }
 
-    public static void LogError(string message, GameObject context = null)
+    public static void LogError(object message, GameObject context = null)
     {
         if (IsEnable)
         {

@@ -16,11 +16,27 @@ public class ResourceConfig : IBaseConfig
 
     public class ResourceData
     {
-        public int major = 0;
-        public int minor = 0;
         public string hashValue = string.Empty;
 
         public List<ConfResourceItem> patchLst = new List<ConfResourceItem>();
+
+        public override bool Equals(object obj)
+        {
+            ResourceData data = obj as ResourceData;
+            if (null == data)
+            {
+                return false;
+            }
+            else
+            {
+                return hashValue == data.hashValue;
+            }
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
     }
 
     public ResourceData resource = new ResourceData();
@@ -51,6 +67,11 @@ public class ResourceConfig : IBaseConfig
 
             resourceDic.Add(item.file, item);
         }
+    }
+
+    public bool ContainFile(string file)
+    {
+        return resourceDic.ContainsKey(file);
     }
 
     public ConfResourceItem GetResourceItem(string fileName)

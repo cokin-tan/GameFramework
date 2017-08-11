@@ -1,0 +1,11 @@
+{
+	"GameVersion": "0.0.1",
+	"ResourceUrls": [{
+		"Url": "http://192.168.1.158/ResourceTest/",
+		"Timeout": 5
+	},
+	{
+		"Url": "http://192.168.1.158/ResourceTest/",
+		"Timeout": 5
+	}]
+}

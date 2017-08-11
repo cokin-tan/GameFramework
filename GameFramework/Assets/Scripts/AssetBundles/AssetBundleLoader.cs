@@ -7,6 +7,7 @@ using Object = UnityEngine.Object;
 
 #if UNITY_EDITOR
 using UnityEditor;
+using UnityEngine.Networking;
 #endif
 
 namespace FrameWork.Assets
@@ -325,6 +326,7 @@ namespace FrameWork.Assets
             }
             else
             {
+                Logger.LogError(AssetBundleBuildInFile);
                 bundle = AssetBundle.LoadFromFile(AssetBundleBuildInFile);
             }
 
@@ -461,6 +463,56 @@ namespace FrameWork.Assets
         {
             bundleInfo = null;
             this.state = EBundleLoadState.EState_None;
+        }
+    }
+
+    public class DownloadAssetBundleLoader : MobileAssetBundleLoader
+    {
+        public string SourcePath = string.Empty;
+        public string TargetPath = string.Empty;
+
+        public DownloadAssetBundleLoader(Action<AssetBundleLoader> onManagerComplete, Action<AssetBundleLoader> onManagerError):
+            base(onManagerComplete, onManagerError)
+        {
+        }
+
+        public override void LoadBundleAsync()
+        {
+            AssetBundleManager.Instance.StartCoroutine(DownloadFile());
+        }
+
+        private IEnumerator DownloadFile()
+        {
+            if (EBundleLoadState.EState_Error != state)
+            {
+                using (WWW www = new WWW(SourcePath))
+                {
+                    yield return www;
+
+                    if (null != www.error)
+                    {
+                        Logger.LogError("download file failed!!! source file = " + SourcePath);
+                    }
+                    else
+                    {
+                        if (!string.IsNullOrEmpty(TargetPath))
+                        {
+                            DownloadUtil.WriteFile(www, TargetPath);
+                        }
+                        else
+                        {
+                            if (null == www.assetBundle)
+                            {
+                                text = www.text;
+                            }
+
+                            bytes = www.bytes;
+                            bundle = www.assetBundle;
+                        }
+                    }
+                }
+                this.OnComplete();
+            }
         }
     }
 }

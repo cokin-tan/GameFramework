@@ -51,7 +51,50 @@ namespace FrameWork.Assets
             AssetBundleLoader bundleLoader = CreateAssetBundleLoader(filePath, param, isMulti, true);
             if (null == bundleLoader)
             {
-                OnComplete(null);
+                if (null != OnComplete)
+                {
+                    OnComplete(null);
+                }
+            }
+            else
+            {
+                allLoadSet.Add(bundleLoader);
+                if (bundleLoader.IsComplete)
+                {
+                    if (null != OnComplete)
+                    {
+                        bundleLoader.bundleInfo.param = param;
+
+                        OnComplete(bundleLoader.bundleInfo);
+                    }
+                }
+                else
+                {
+                    if (null != OnComplete)
+                    {
+                        bundleLoader.onLoadComplete += OnComplete;
+                    }
+
+                    if (bundleLoader.state < EBundleLoadState.EState_Loading)
+                    {
+                        unCompleteLoadSet.Add(bundleLoader);
+                    }
+                    StartLoadBundle();
+                }
+            }
+
+            return bundleLoader;
+        }
+
+        public AssetBundleLoader DownloadAssetAsync(string sourcePath, string targetPath, Action<AssetBundleInfo> OnComplete, object param = null)
+        {
+            AssetBundleLoader bundleLoader = CreateDownloadLoader(sourcePath, targetPath, param);
+            if (null == bundleLoader)
+            {
+                if (null != OnComplete)
+                {
+                    OnComplete(null);
+                }
             }
             else
             {
@@ -116,6 +159,22 @@ namespace FrameWork.Assets
             return bundleLoader;
         }
 
+        public AssetBundleLoader CreateDownloadLoader(string sourcePath, string targetPath, object param = null)
+        {
+            DownloadAssetBundleLoader bundleLoader = new DownloadAssetBundleLoader(OnLoadComplete, OnLoadError);
+
+            bundleLoader.bundleName = sourcePath;
+            bundleLoader.bundleData = null;
+            bundleLoader.SourcePath = sourcePath;
+            bundleLoader.TargetPath = targetPath;
+            bundleLoader.param = param;
+            bundleLoader.onDepLoadCompleted = OnDepLoadComplete;
+
+            loaderCacheDic[sourcePath] = bundleLoader;
+
+            return bundleLoader;
+        }
+
         public void RemoveAllLoader()
         {
             this.StopAllCoroutines();
@@ -146,6 +205,11 @@ namespace FrameWork.Assets
                     string bundleName = bundleNames[index];
                     AssetBundleInfo bundleInfo = loadedAssetBundles[bundleName];
 
+                    if (null == bundleInfo)
+                    {
+                        Logger.LogError("the bundle is null " + bundleName);
+                    }
+
                     if(bundleInfo.IsUnused)
                     {
                         RemoveAssetBundle(bundleInfo);
@@ -165,16 +229,16 @@ namespace FrameWork.Assets
             }
         }
 
-        private void CheckUnusedAssetBundle()
-        {
-            UnLoadUnusedAssetBundle(false);
-        }
-
-        private void RemoveAssetBundle(AssetBundleInfo abInfo)
+        public void RemoveAssetBundle(AssetBundleInfo abInfo)
         {
             abInfo.Dispose();
             loadedAssetBundles.Remove(abInfo.bundleName);
             loaderCacheDic.Remove(abInfo.bundleName);
+        }
+
+        private void CheckUnusedAssetBundle()
+        {
+            UnLoadUnusedAssetBundle(false);
         }
 
         private void StartLoadBundle()

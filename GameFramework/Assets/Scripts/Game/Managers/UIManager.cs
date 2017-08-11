@@ -27,10 +27,18 @@ public class UIManager : Singleton<UIManager>
     {
         GameObject obj = null;
 
-        AssetBundleManager.Instance.LoadAssetSync(objName, (item) =>
+        if (objName == GameResourceDefine.UIROOT_DOWNLOAD)
         {
-            obj = item.Instantiate();
-        });
+            obj = Resources.Load<GameObject>("ui/" + objName.Substring(0, objName.LastIndexOf(".")));
+            obj = GameObject.Instantiate<GameObject>(obj);
+        }
+        else
+        {
+            AssetBundleManager.Instance.LoadAssetSync(objName, (item) =>
+            {
+                obj = item.Instantiate();
+            });
+        }
 
         return obj;
     }
