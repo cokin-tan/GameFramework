@@ -559,12 +559,18 @@ public static class AssetBundleBuilder
         BuildAssetsBundle(assetConfig, buildItemConfig, Path.Combine(Application.dataPath, "data"));
         return true;
     }
+
+    public static void QuickBuildPlayer(string path)
+    {
+        BuildPipeline.BuildPlayer(new string[] { "Assets/Launch.unity" }, path, CurrentBuildTarget, BuildOptions.Il2CPP);
+        EditorUtility.RevealInFinder(path);
+    }
 }
 
 public class AssetBundleBuilderWindow : EditorWindow
 {
     #region attributes
-    public static string DefineSymbols
+    public string DefineSymbols
     {
         get
         {
@@ -573,6 +579,16 @@ public class AssetBundleBuilderWindow : EditorWindow
         set
         {
             PlayerSettings.SetScriptingDefineSymbolsForGroup(EditorUserBuildSettings.selectedBuildTargetGroup, value);
+        }
+    }
+
+    public bool IsAbMode
+    {
+        get
+        {
+            List<string> symbols = new List<string>(DefineSymbols.Split(new char[] { ';' }, System.StringSplitOptions.RemoveEmptyEntries));
+
+            return symbols.Contains("AB_MODE");
         }
     }
     #endregion
@@ -687,6 +703,24 @@ public class AssetBundleBuilderWindow : EditorWindow
         }
     }
 
+    private string GetPlatformPackageExtesion()
+    {
+        switch (AssetBundleBuilder.CurrentBuildTarget)
+        {
+            case BuildTarget.Android:
+                return "apk";
+            case BuildTarget.iOS:
+                return "ipa";
+            default:
+                return "exe";
+        }
+    }
+
+    private bool BuildResourcesPackage()
+    {
+        return AssetBundleBuilder.BuildAssetsBundle();
+    }
+
     private void BuildUpdatePackage()
     {
         AssetBundleBuilder.BuildAssetsBundle(new BuildAssetConfig()
@@ -696,9 +730,54 @@ public class AssetBundleBuilderWindow : EditorWindow
             updatePackagePath = UpdatePackagePath,
             successCallback = (path) => 
             {
+                UpdatePackagePath = string.Empty;
                 EditorUtility.RevealInFinder(path);
             }
         });
+    }
+
+    private void SwitchToAbMode()
+    {
+        List<string> symbols = new List<string>(DefineSymbols.Split(new char[] { ';' }, System.StringSplitOptions.RemoveEmptyEntries));
+        if (!symbols.Contains("AB_MODE"))
+        {
+            symbols.Add("AB_MODE");
+            DefineSymbols = string.Join(";", symbols.ToArray());
+        }
+    }
+
+    private void SwitchToNormalMode()
+    {
+        List<string> symbols = new List<string>(DefineSymbols.Split(new char[] { ';' }, System.StringSplitOptions.RemoveEmptyEntries));
+        symbols.Remove("AB_MODE");
+        DefineSymbols = string.Join(";", symbols.ToArray());
+    }
+
+    private void QuickBuildPlayer()
+    {
+        if (!IsAbMode)
+        {
+            SwitchToAbMode();
+        }
+
+        string savePath = EditorUtility.SaveFilePanel("Build", Directory.GetCurrentDirectory(), "fuck", GetPlatformPackageExtesion());
+        string saveDirectory = Path.GetDirectoryName(savePath);
+        if (!Directory.Exists(saveDirectory))
+        {
+            Directory.CreateDirectory(saveDirectory);
+        }
+        if (BuildResourcesPackage())
+        {
+            AssetBundleBuilder.QuickBuildPlayer(savePath);
+        }
+    }
+
+    private void SwitchPlatform(BuildTargetGroup group, BuildTarget target)
+    {
+        if (AssetBundleBuilder.CurrentBuildTarget != target)
+        {
+            EditorUserBuildSettings.SwitchActiveBuildTarget(group, target);
+        }
     }
 
     void OnGUI()
@@ -716,8 +795,40 @@ public class AssetBundleBuilderWindow : EditorWindow
                 EditorGUILayout.Space();
                 if (GUILayout.Button("Build Asset Bundle"))
                 {
-                    AssetBundleBuilder.BuildAssetsBundle();
+                    BuildResourcesPackage();
                 }
+                if (IsAbMode)
+                {
+                    if (GUILayout.Button("Switch to Normal Mode"))
+                    {
+                        SwitchToNormalMode();
+                    }
+                }
+                else
+                {
+                    if (GUILayout.Button("Switch to AB Mode"))
+                    {
+                        SwitchToAbMode();
+                    }
+                }
+                if (GUILayout.Button("Quick Build Player"))
+                {
+                    QuickBuildPlayer();
+                }
+                if (GUILayout.Button("Switch to PC"))
+                {
+                    SwitchPlatform(BuildTargetGroup.Standalone, BuildTarget.StandaloneWindows);
+                }
+                if (GUILayout.Button("Switch to Android"))
+                {
+                    SwitchPlatform(BuildTargetGroup.Android, BuildTarget.Android);
+                }
+#if UNITY_IOS
+                if (GUILayout.Button("Switch to IOS"))
+                {
+                    SwitchPlatform(BuildTargetGroup.iOS, BuildTarget.iOS);
+                }
+#endif
             }
             else
             {

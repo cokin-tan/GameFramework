@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using FrameWork.Assets;
 
 public class ConfigManager : Singleton<ConfigManager>
 {
@@ -11,15 +12,27 @@ public class ConfigManager : Singleton<ConfigManager>
 
     public override void Initialize()
     {
-        configLst.Add("data/conf/verfile.json", resourceConfig);
+        configLst.Add("verfile.conf", resourceConfig);
     }
 
     private void ReadConfData(string fileName, IBaseConfig conf)
     {
-        using (StreamReader sr = new StreamReader(Path.Combine(Application.dataPath, fileName)))
+#if UNITY_EDITOR && !AB_MODE
+        using (StreamReader sr = new StreamReader(Path.Combine(Application.dataPath, AssetBundlePathResolver.GetAssetPath(fileName))))
         {
             conf.Initialize(sr.ReadToEnd());
         }
+#else
+        AssetBundleManager.Instance.LoadAssetSync(fileName, (abInfo) => 
+        {
+            TextAsset asset = abInfo.Require(null) as TextAsset;
+            if (null != asset)
+            {
+                conf.Initialize(asset.text);
+            }
+        });
+#endif
+
     }
 
     public void InitConfData()

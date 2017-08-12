@@ -23,8 +23,7 @@ public class Launch : MonoBehaviour
     IEnumerator Test()
     {
         yield return new WaitForSeconds(2.0f);
-        //ConfigManager.Instance.InitConfData();
-
+        
         UIManager.Instance.ChangeRootWindow(GameResourceDefine.UIROOT_DOWNLOAD);
 
         yield return new WaitForSeconds(3.0f);

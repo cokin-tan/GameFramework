@@ -104,7 +104,7 @@ public class Download : MonoBehaviour
         for (int index = 0; index < clientVersionConfig.ResourceUrls.Count; ++index)
         {
             ResourceItem item = clientVersionConfig.ResourceUrls[index];
-            string requestUrl = string.Format("{0}{1}/{2}", item.Url, GameConstant.PlatformDirectory, versionFileName);
+            string requestUrl = string.Format("{0}{1}/{2}/{3}", item.Url, GameConstant.PlatformDirectory, DeviceInfo.GameVersion.ToLower(), versionFileName);
             string platformInfos = string.Empty;
             AssetBundleManager.Instance.DownloadAssetAsync(requestUrl, null, (abInfo) =>
             {
@@ -368,21 +368,9 @@ public class Download : MonoBehaviour
                 {
                     yield return StartCoroutine(DownloadAsset(updateList, serverBytes));
                 }
-                else
-                {
-                    // todo check update finish
-                }
-            }
-            else
-            {
-                Logger.LogError("the resouce config is equal");
             }
         }
-        else
-        {
-            // todo check update finish
-            Logger.LogError("don't has file to update");
-        }
+        yield return StartCoroutine(PreloadNeedAsset());
     }
 
     private IEnumerator DownloadAsset(List<ConfResourceItem> updatelist, byte[] serverBytes)
@@ -416,5 +404,13 @@ public class Download : MonoBehaviour
         {
             DownloadUtil.WriteFileToPersistent(serverBytes, GameResourceDefine.ASSET_UPDATE_FILE);
         }
+    }
+
+    private IEnumerator PreloadNeedAsset()
+    {
+        Logger.LogError("start preload need Asset");
+
+        ConfigManager.Instance.InitConfData();
+        yield return null;
     }
 }
