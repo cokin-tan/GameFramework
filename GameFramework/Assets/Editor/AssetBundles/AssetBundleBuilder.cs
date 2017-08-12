@@ -101,7 +101,7 @@ public static class AssetBundleBuilder
             jsonText = Pathfinding.Serialization.JsonFx.JsonWriter.Serialize(json);
             sw.Write(jsonText);
         }
-        AssetDatabase.ImportAsset("Assets" + path, ImportAssetOptions.ForceUpdate);
+        AssetDatabase.ImportAsset("Assets/" + path, ImportAssetOptions.ForceUpdate);
 
         return jsonText;
     }
@@ -113,6 +113,7 @@ public static class AssetBundleBuilder
         {
             Directory.CreateDirectory(directory);
         }
+
         File.Copy(from, to, true);
     }
 
@@ -192,9 +193,6 @@ public static class AssetBundleBuilder
         {
             bundle = AssetBundle.LoadFromMemory(fileData);
             string fileText = bundle.LoadAsset<TextAsset>(bundle.GetAllAssetNames()[0]).text;
-
-            Logger.LogError(fileText);
-
             result = new ResourceConfig();
             result.Initialize(fileText);
         }
@@ -308,7 +306,7 @@ public static class AssetBundleBuilder
 
             if (fileInfo.Exists)
             {
-                fileSize = (int)fileInfo.Length / 1024;
+                fileSize = Mathf.CeilToInt(fileInfo.Length / 1024.0f);
             }
             else
             {
@@ -385,7 +383,7 @@ public static class AssetBundleBuilder
 
         // load new verfile and caculate new verfile md5
         AssetBundle newVerfileBundle = null;
-        ResourceConfig verfileConfig = null;
+        ResourceConfig verfileConfig = new ResourceConfig();
         string verfileHashValue = string.Empty;
         try
         {
@@ -396,7 +394,7 @@ public static class AssetBundleBuilder
             ResourceConfig tempVersionJson = new ResourceConfig();
             tempVersionJson.Initialize(verfileText);
             tempVersionJson.resource.patchLst.RemoveAll((item) => { return item.file.Contains("verfile") || item.file.Contains("updatelist"); });
-            verfileHashValue = Utils.HashToMd5(Pathfinding.Serialization.JsonFx.JsonWriter.Serialize(tempVersionJson));
+            verfileHashValue = Utils.HashToMd5(Pathfinding.Serialization.JsonFx.JsonWriter.Serialize(tempVersionJson.resource));
         }
         finally
         {
@@ -532,6 +530,8 @@ public static class AssetBundleBuilder
                 }
             }
         }
+
+        EditorUtility.ClearProgressBar();
     }
 
     private static void BuildAssetsBundle(BuildAssetConfig assetConfig, BuildItemConfig[] buildItemConfig, string rootPath)
@@ -689,11 +689,15 @@ public class AssetBundleBuilderWindow : EditorWindow
 
     private void BuildUpdatePackage()
     {
-        AssetBundleBuilder.BuildAssetsBundle(new BuildAssetConfig() 
+        AssetBundleBuilder.BuildAssetsBundle(new BuildAssetConfig()
         {
             isUpdate = true,
             packagePath = PackagePath,
-            updatePackagePath = UpdatePackagePath
+            updatePackagePath = UpdatePackagePath,
+            successCallback = (path) => 
+            {
+                EditorUtility.RevealInFinder(path);
+            }
         });
     }
 
@@ -723,7 +727,7 @@ public class AssetBundleBuilderWindow : EditorWindow
                 UpdatePackagePath = DrawPathPanel("Update Package path:", currentUpdatePackagePath, new string[] { "package", "zip", "updatelist", "conf" });
 
                 EditorGUI.BeginDisabledGroup(string.IsNullOrEmpty(PackagePath));
-                if (GUILayout.Button("Buila Update Package"))
+                if (GUILayout.Button("Build Update Package"))
                 {
                     BuildUpdatePackage();
                 }

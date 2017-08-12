@@ -25,15 +25,7 @@ public class Launch : MonoBehaviour
         yield return new WaitForSeconds(2.0f);
         //ConfigManager.Instance.InitConfData();
 
-        //UIManager.Instance.ChangeRootWindow(GameResourceDefine.UIROOT_DOWNLOAD);
-
-        float startTime = Time.realtimeSinceStartup;
-        for (int index = 0; index < 100000; ++index)
-        {
-            Utils.FileToMd5(GameConstant.PersistentDataPath + "data/conf/verfile.conf");
-        }
-
-        Logger.LogError(Time.realtimeSinceStartup - startTime);
+        UIManager.Instance.ChangeRootWindow(GameResourceDefine.UIROOT_DOWNLOAD);
 
         yield return new WaitForSeconds(3.0f);
     }

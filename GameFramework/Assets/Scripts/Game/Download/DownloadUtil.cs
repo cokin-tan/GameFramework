@@ -44,8 +44,6 @@ public class DownloadUtil
             return;
         }
 
-        Logger.LogError(Application.persistentDataPath + filePath);
-
         WriteFile(bytes, GameConstant.PersistentDataPath + filePath);
     }
 
