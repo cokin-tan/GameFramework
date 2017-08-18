@@ -7,7 +7,6 @@ using Object = UnityEngine.Object;
 
 #if UNITY_EDITOR
 using UnityEditor;
-using UnityEngine.Networking;
 #endif
 
 namespace FrameWork.Assets

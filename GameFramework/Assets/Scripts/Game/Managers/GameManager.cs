@@ -2,8 +2,7 @@
 
 public class GameManager : Singleton<GameManager> 
 {
-    public void Fuck()
+    public void MessageProc(uint msgId, object message)
     {
-        Logger.LogError("fuck", this.gameObject);
     }
 }
